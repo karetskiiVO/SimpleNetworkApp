@@ -4,25 +4,16 @@ import (
 	"log"
 	"net"
 	"syscall"
+	"time"
 )
 
 const (
-	batchSize = 1024
+	ttl time.Duration = time.Minute
 )
-
-// Application interface
-type Application interface {
-	Close() error
-	ListenAndServe() error
-}
 
 // TCPserver implements tcp server
 type TCPserver struct {
 	fd int
-}
-
-func htons(i uint16) uint16 {
-	return (i<<8)&0xff00 | i>>8
 }
 
 // NewTCPserver constructs TCPserver
@@ -55,19 +46,35 @@ func (tcp TCPserver) Close() (err error) {
 	return
 }
 
-// ListenAndServe implement standart application loop
-func (tcp TCPserver) ListenAndServe() error {
+// Run implement standart application loop
+func (tcp TCPserver) Run() error {
 	for {
 		conn, addr, err := syscall.Accept(tcp.fd)
 		if err != nil {
-			return err
+			continue
 		}
 
-		msg, err := recieveFullMsg(conn)
-		if err != nil {
-			return err
-		}
+		go func() {
+			ipAdrr := addr.(*syscall.SockaddrInet4).Addr
+			var err error
+			
+			for {
+				var msg []byte
+				msg, err = tcpRecieveMsg(conn)
+				if err != nil {
+					break
+				}
 
-		log.Printf("Recieved from %v:%v\n", addr, msg)
+				log.Printf("Recieved from %d:%d:%d:%d: %v", ipAdrr[0], ipAdrr[1], ipAdrr[2], ipAdrr[3], string(msg))
+
+				err = tcpSendMsg(conn, msg)
+				if err != nil {
+					break
+				}
+			}
+
+			log.Printf("Connection with d:%d:%d:%d lost with %v", ipAdrr[0], ipAdrr[1], ipAdrr[2], ipAdrr[3], err)
+			syscall.Close(conn)
+		}()
 	}
 }

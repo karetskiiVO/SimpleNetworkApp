@@ -34,8 +34,21 @@ func main() {
 			log.Fatal(err)
 		}
 	case "tcpclient":
-
+		app, err = netapp.NewTCPclient(ip, options.Args.Port)
+		if err != nil {
+			log.Fatal(err)
+		}
+	case "udpserver":
+		app, err = netapp.NewUDPserver(ip, options.Args.Port)
+		if err != nil {
+			log.Fatal(err)
+		}
+	case "udpclient":
+		app, err = netapp.NewUDPclient(ip, options.Args.Port)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	defer app.Close()
-	app.ListenAndServe()
+	app.Run()
 }
