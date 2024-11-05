@@ -26,7 +26,7 @@ func tcpRecieveMsg(conn int) ([]byte, error) {
 		data := make([]byte, n)
 		recievedCnt := 0
 		for recievedCnt < n {
-			len, _, err := syscall.Recvfrom(conn, data[recievedCnt:min(n, batchSize)], 0)
+			len, _, err := syscall.Recvfrom(conn, data[recievedCnt:min(n, recievedCnt+batchSize)], 0)
 
 			// conection err
 			if err != nil {
